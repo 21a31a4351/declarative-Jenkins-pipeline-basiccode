@@ -19,7 +19,7 @@ pipeline{
         stage('sonar'){
             steps{
                 withSonarQubeEnv('nandakishore'){
-                    sh 'mvn sonar:sonar'
+                    sh 'mvn sonar:sonar -Dsonar.organization=nandakishore'
                 }
             }
         }
