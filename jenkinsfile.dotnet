@@ -1,0 +1,32 @@
+pipeline{
+    agent{
+        label 'dev'
+    }
+   triggers{
+        pollSCM('* * * * *')
+   }
+   stages{
+        stage('git-clone'){
+            steps {
+                git url:'https://github.com/21a31a4351/nopCommerce.git' , branch : 'develop'
+            }
+        }
+        stage('build'){
+            steps{
+                sh 'dotnet publish -c Release src/Presentation/Nop.Web/Nop.Web.csproj -o kishore'
+            }
+        }
+   }
+   post {
+        always {
+            junit '**/surefire-reports/*.xml'
+            archiveArtifacts artifacts: 'kishore/**/*.dll'
+        }
+        success {
+            echo 'build successful'
+        }
+        failure {
+            echo 'build failed'
+        }
+    }
+}
