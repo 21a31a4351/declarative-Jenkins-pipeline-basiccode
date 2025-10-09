@@ -1,0 +1,32 @@
+pipeline{
+    agent{
+        label 'app'
+    }
+    triggers {
+        pollSCM('* * * * *')
+    }
+    stages{
+        stage('git-clone'){
+            steps {
+                git url:'https://github.com/21a31a4351/spring-petclinic.git', branch:'main'
+            }
+        }
+        stage('build'){
+            steps{
+                sh 'mvn package'
+            }
+        }
+    }
+    post{
+        always{
+            junit '**/target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: '**/target/*.jar'
+        }
+        success{
+            echo 'build successful'
+        }
+        failure{
+            echo 'build failed'
+        }
+    }
+}
