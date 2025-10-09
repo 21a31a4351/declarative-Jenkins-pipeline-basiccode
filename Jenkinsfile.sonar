@@ -23,7 +23,7 @@ pipeline{
             archiveArtifacts artifacts: '**/target/*.jar'
         }
         success{
-            echo 'build successful'
+            echo 'build successful in sonar branch'
         }
         failure{
             echo 'build failed'
