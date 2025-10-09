@@ -16,6 +16,23 @@ pipeline{
                 sh 'mvn package'
             }
         }
+        stage('sonar'){
+            steps{
+                withSonarQubeEnv('nandakishore'){
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+        stage('quality'){
+            steps{
+                timeout(time: 4,unit:"MINUTES"){
+                    waitForQualityGate abortPipeline: true
+                }
+
+            }
+        }
+    
+        
     }
     post{
         always{
