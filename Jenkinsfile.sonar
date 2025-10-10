@@ -18,8 +18,15 @@ pipeline{
         }
         stage('sonar'){
             steps{
-                withSonarQubeEnv('nandakishore'){
-                    sh 'mvn sonar:sonar -Dsonar.organization=nandakishore'
+                withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]){
+                    withSonarQubeEnv('nandakishore')
+                    sh """mvn package sonar:sonar \
+                          -Dsonar.projectKey=nandakishore_kishore \
+                          -Dsonar.organization:nandakishore \
+                          -Dsonar.host.url =https://sonarcloud.io \
+                          -Dsonar.login=$SONAR_TOKEN"""
+
+                           
                 }
             }
         }
