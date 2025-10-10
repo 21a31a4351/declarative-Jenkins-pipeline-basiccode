@@ -18,7 +18,7 @@ pipeline{
         }
         stage('sonar'){
             steps{
-                withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]){
+                withCredentials([string(credentialsId: 'nandakishore', variable: 'SONAR_TOKEN')]){
                     withSonarQubeEnv('nandakishore')
                     sh """mvn package sonar:sonar \
                           -Dsonar.projectKey=nandakishore_kishore \
