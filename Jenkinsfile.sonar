@@ -16,16 +16,16 @@ pipeline{
                 sh 'mvn package'
             }
         }
-        stage('sonar'){
+        stage('sonarQube'){
             steps{
                 withCredentials([string(credentialsId: 'sonarid', variable: 'SONAR_TOKEN')]){
-                    withSonarQubeEnv('nandakishore')
-                    sh """mvn package sonar:sonar \
-                          -Dsonar.projectKey=javamainapplication_javaapp \
-                          -Dsonar.organization:javamainapplication \
-                          -Dsonar.host.url =https://sonarcloud.io \
-                          -Dsonar.login=$SONAR_TOKEN"""
-
+                    withSonarQubeEnv('nandakishore'){
+                        sh """mvn package sonar:sonar \
+                            -Dsonar.projectKey=javamainapplication_javaapp \
+                            -Dsonar.organization:javamainapplication \
+                            -Dsonar.host.url =https://sonarcloud.io \
+                            -Dsonar.login=$SONAR_TOKEN"""
+                    }
                            
                 }
             }
