@@ -1,0 +1,49 @@
+pipeline {
+    agent {
+        label 'app'
+    }
+    triggers {
+        pollSCM('* * * * *')
+    }
+    stages {
+        stage('git-clone') {
+            steps {
+                git url: 'https://github.com/21a31a4351/spring-petclinic.git', branch: 'main'
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+        stage('sonarqube-scan') {
+            steps {
+                withCredentials([string(credentialsId: 'sonari_id', variable: 'sonar_token')]) {
+                    withSonarQubeEnv('sonarqube') {
+                        sh """mvn package sonar:sonar \
+                          -Dsonar.projectKey=javamainapplication_javaapp \
+                          -Dsonar.organization=javamainapplication \
+                          -Dsonar.host.url=https://sonarcloud.io \
+                          -Dsonar.login=$sonar_token"""
+                    }
+                }
+            }
+        }
+        stage('upload-file') {
+            steps {
+                rtUpload(
+                    serverId: 'nandakishore',
+                    spec: '''{
+                        "files": [
+                            {
+                                "pattern": "target/*.jar",
+                                "target": "newrepo-libs-release-local"
+                            }
+                        ]
+                    }'''
+                )
+                rtPublish buildInfo: buildInfo, serverId: 'nandakishore'
+            }
+        }
+    }
+}
