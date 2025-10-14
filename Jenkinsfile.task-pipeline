@@ -1,0 +1,92 @@
+pipeline {
+    agent {
+        label 'app'
+    }
+    triggers {
+        pollSCM('* * * * *')
+    }
+    stages {
+        stage('git-clone') {
+            steps {
+                git url: 'https://github.com/21a31a4351/spring-petclinic.git', branch: 'main'
+            }
+        }
+        stage('sonarqube-scan') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar_id', variable: 'sonar_token')]) {
+                    withSonarQubeEnv('sonarqube') {
+                        sh """mvn package sonar:sonar \
+                          -Dsonar.projectKey=javamainapplication_javaapp \
+                          -Dsonar.organization=javamainapplication \
+                          -Dsonar.host.url=https://sonarcloud.io \
+                          -Dsonar.login=$sonar_token"""
+                    }
+                }
+            }
+        }
+        stage('upload-file') {
+            steps {
+                script {
+                    def server = Artifactory.server 'nandakishore_id'
+                    def buildInfo = Artifactory.newBuildInfo()
+
+                    server.upload(
+                        spec: '''{
+                            "files": [
+                                {
+                                    "pattern": "target/*.jar",
+                                    "target": "newrepo-libs-release-local/"
+                                }
+                            ]
+                        }''',
+                        buildInfo: buildInfo
+                    )
+
+                    server.publishBuildInfo(buildInfo)
+                }
+            }
+        }
+         stage('install-trivy') {
+            steps {
+                sh '''
+                    sudo apt-get install -y wget gnupg
+                    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+                    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+                    sudo apt-get update
+                    sudo apt-get install -y trivy
+                '''
+            }
+        }
+        stage ('docker-install'){
+            steps {
+                sh ''' curl -fsSL https://get.docker.com -o install-docker.sh
+                       sudo sh install-docker.sh
+                       sudo usermod -aG docker ubuntu
+                       exit 
+                       ssh ubuntu@13.232.238.18  
+                       docker info   '''
+             }
+
+        }
+        stage ('build'){
+            steps {
+                sh ''' docker image build -t spring-petclinic:latest . 
+                       docker image ls  
+                       trivy scan spring-petclinic:latest  '''
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: '**/target/*.jar'
+        }
+        success {
+            echo 'build successful in jfrog branch'
+        }
+        failure {
+            echo 'build failed'
+        }
+    }
+}

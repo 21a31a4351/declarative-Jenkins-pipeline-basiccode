@@ -1,0 +1,32 @@
+pipeline {
+    agent {
+        label 'app'
+    }
+    triggers {
+        pollSCM('* * * * *')
+    }
+    stages {
+        stage('install-trivy') {
+            steps {
+                sh '''
+                    sudo apt-get install -y wget gnupg
+                    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+                    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+                    sudo apt-get update
+                    sudo apt-get install -y trivy
+                '''
+            }
+        }
+        stage ('docker-install'){
+            steps {
+                sh ''' curl -fsSL https://get.docker.com -o install-docker.sh
+                       sudo sh install-docker.sh
+                       sudo usermod -aG docker ubuntu
+                       exit 
+                       ssh ubuntu@13.232.238.18  
+                       docker info   '''
+             }
+
+        }
+}    }
+
