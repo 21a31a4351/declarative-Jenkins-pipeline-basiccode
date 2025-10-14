@@ -11,14 +11,9 @@ pipeline {
                 git url: 'https://github.com/21a31a4351/spring-petclinic.git', branch: 'main'
             }
         }
-        stage('build') {
-            steps {
-                sh 'mvn package'
-            }
-        }
         stage('sonarqube-scan') {
             steps {
-                withCredentials([string(credentialsId: 'sonari_id', variable: 'sonar_token')]) {
+                withCredentials([string(credentialsId: 'sonar_id', variable: 'sonar_token')]) {
                     withSonarQubeEnv('sonarqube') {
                         sh """mvn package sonar:sonar \
                           -Dsonar.projectKey=javamainapplication_javaapp \
@@ -31,19 +26,38 @@ pipeline {
         }
         stage('upload-file') {
             steps {
-                rtUpload(
-                    serverId: 'nandakishore',
-                    spec: '''{
-                        "files": [
-                            {
-                                "pattern": "target/*.jar",
-                                "target": "newrepo-libs-release-local"
-                            }
-                        ]
-                    }'''
-                )
-                rtPublish buildInfo: buildInfo, serverId: 'nandakishore'
+                script {
+                    def server = Artifactory.server 'nandakishore_id'
+                    def buildInfo = Artifactory.newBuildInfo()
+
+                    server.upload(
+                        spec: '''{
+                            "files": [
+                                {
+                                    "pattern": "target/*.jar",
+                                    "target": "newrepo-libs-release-local/"
+                                }
+                            ]
+                        }''',
+                        buildInfo: buildInfo
+                    )
+
+                    server.publishBuildInfo(buildInfo)
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: '**/target/*.jar'
+        }
+        success {
+            echo 'build successful in jfrog branch'
+        }
+        failure {
+            echo 'build failed'
         }
     }
 }
